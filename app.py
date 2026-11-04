@@ -8,30 +8,56 @@ app = Flask(__name__)
 # 🔴 কনফিগারেশন
 # ========================================
 API_KEY    = os.environ.get("API_KEY", "mySecretKey_12345")
-BOT_TOKEN  = "8988458629:AAG_soF532b0l2xarRnfxwm7GGsVYzQ-rEU"
-CHAT_ID    = "5971752529"
+BOT_TOKEN  = os.environ.get("BOT_TOKEN", "8988458629:AAG_soF532b0l2xarRnfxwm7GGsVYzQ-rEU")
+
+# CHAT_ID একাধিক হতে পারে — comma দিয়ে আলাদা করুন
+# উদাহরণ: "5971752529,1234567890,9876543210"
+CHAT_ID_RAW = os.environ.get("CHAT_ID", "5971752529,8967741807")
+CHAT_IDS    = [c.strip() for c in CHAT_ID_RAW.split(",") if c.strip()]
+
 LOG_FILE   = "sms_log.json"
 
 
 # ========================================
-# 🔔 Telegram এ message পাঠানোর helper
+# 🔔 Telegram এ message পাঠানোর helper (multi-chat)
 # ========================================
 def send_telegram(message):
-    try:
-        url = "https://api.telegram.org/bot" + BOT_TOKEN + "/sendMessage"
-        data = urllib.parse.urlencode({
-            "chat_id": CHAT_ID,
-            "text": message,
-            "parse_mode": "HTML"
-        }).encode("utf-8")
-
-        req = urllib.request.Request(url, data=data, method="POST")
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            print("✅ Telegram sent:", resp.status)
-            return True
-    except Exception as e:
-        print("❌ Telegram error:", e)
+    """
+    সবগুলো CHAT_ID-তে message পাঠায়।
+    অন্তত একটি সফল হলে True রিটার্ন করে।
+    """
+    if not BOT_TOKEN:
+        print("❌ BOT_TOKEN সেট করা নেই")
         return False
+
+    if not CHAT_IDS:
+        print("❌ কোনো CHAT_ID সেট করা নেই")
+        return False
+
+    url = "https://api.telegram.org/bot" + BOT_TOKEN + "/sendMessage"
+    any_success = False
+
+    for chat_id in CHAT_IDS:
+        try:
+            data = urllib.parse.urlencode({
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": "true"
+            }).encode("utf-8")
+
+            req = urllib.request.Request(url, data=data, method="POST")
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                print(f"✅ Telegram sent to {chat_id}: {resp.status}")
+                any_success = True
+
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="ignore")
+            print(f"❌ Telegram HTTP error for {chat_id}: {e.code} {body}")
+        except Exception as e:
+            print(f"❌ Telegram error for {chat_id}: {e}")
+
+    return any_success
 
 
 # ========================================
@@ -56,7 +82,7 @@ def receive_sms():
         data = request.get_json(force=True, silent=True) or {}
         data["_received_at"] = datetime.utcnow().isoformat()
 
-        # Log to file
+        # Log to file (শেষ ৫০০টা রাখে)
         try:
             logs = []
             if os.path.exists(LOG_FILE):
@@ -72,26 +98,21 @@ def receive_sms():
         print("📩 SMS RECEIVED:", data)
 
         # ========================================
-        # 🔔 Telegram Bot এ Message Format করে পাঠান
+        # 🔔 Telegram এ ফরম্যাট করে পাঠান
         # ========================================
         sms_type = data.get("type", "unknown")
         sender   = data.get("sender", "")
         raw      = data.get("raw", "")
         time_str = datetime.now().strftime("%d-%m-%Y %I:%M:%S %p")
 
-        # Message format
         if sms_type == "bKash":
-            emoji = "💗"
-            title = "bKash"
+            emoji, title = "💗", "bKash"
         elif sms_type == "Nagad":
-            emoji = "🟠"
-            title = "Nagad"
+            emoji, title = "🟠", "Nagad"
         elif sms_type == "Rocket":
-            emoji = "🚀"
-            title = "Rocket"
+            emoji, title = "🚀", "Rocket"
         else:
-            emoji = "📨"
-            title = "Unknown"
+            emoji, title = "📨", "Unknown"
 
         message = (
             f"{emoji} <b>{title} SMS Received</b>\n"
@@ -129,7 +150,10 @@ def get_logs():
 @app.route("/test-telegram", methods=["GET"])
 def test_telegram():
     ok = send_telegram("✅ Test message from SMS Receiver Server!")
-    return jsonify({"status": "ok" if ok else "error"})
+    return jsonify({
+        "status": "ok" if ok else "error",
+        "chat_ids": CHAT_IDS
+    })
 
 
 # ========================================
