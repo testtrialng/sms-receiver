@@ -12,7 +12,7 @@ BOT_TOKEN  = os.environ.get("BOT_TOKEN", "8988458629:AAG_soF532b0l2xarRnfxwm7GGs
 
 # CHAT_ID একাধিক হতে পারে — comma দিয়ে আলাদা করুন
 # উদাহরণ: "5971752529,1234567890,9876543210"
-CHAT_ID_RAW = os.environ.get("CHAT_ID", "5971752529,8967741807")
+CHAT_ID_RAW = os.environ.get("CHAT_ID", "5971752529")
 CHAT_IDS    = [c.strip() for c in CHAT_ID_RAW.split(",") if c.strip()]
 
 LOG_FILE   = "sms_log.json"
