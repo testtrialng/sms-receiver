@@ -22,7 +22,7 @@ LOG_FILE   = "sms_log.json"
 @app.route("/version", methods=["GET"])
 def app_version():
     return jsonify({
-        "latest_version": 2,  # আপনার অ্যাপের নতুন ভার্সন কোড (আগে 1 ছিল)
+        "latest_version": 3,  # আপনার অ্যাপের নতুন ভার্সন কোড (আগে 1 ছিল)
         "update_url": "https://github.com/ewalletagentsim/app/raw/refs/heads/main/NGpay.apk", # এখানে আপনার APK-র ডাইরেক্ট লিংক দিন
         "force": True
     })
