@@ -11,12 +11,21 @@ API_KEY    = os.environ.get("API_KEY", "mySecretKey_12345")
 BOT_TOKEN  = os.environ.get("BOT_TOKEN", "8988458629:AAG_soF532b0l2xarRnfxwm7GGsVYzQ-rEU")
 
 # CHAT_ID একাধিক হতে পারে — comma দিয়ে আলাদা করুন
-# উদাহরণ: "5971752529,1234567890,9876543210"
 CHAT_ID_RAW = os.environ.get("CHAT_ID", "5971752529")
 CHAT_IDS    = [c.strip() for c in CHAT_ID_RAW.split(",") if c.strip()]
 
 LOG_FILE   = "sms_log.json"
 
+# ========================================
+# 🔄 Force Update Check Endpoint (নতুন যোগ করা)
+# ========================================
+@app.route("/version", methods=["GET"])
+def app_version():
+    return jsonify({
+        "latest_version": 2,  # আপনার অ্যাপের নতুন ভার্সন কোড (আগে 1 ছিল)
+        "update_url": "https://raw.githubusercontent.com/testrialng/sms-receiver/main/ngpay.apk", # এখানে আপনার APK-র ডাইরেক্ট লিংক দিন
+        "force": True
+    })
 
 # ========================================
 # 🔔 Telegram এ message পাঠানোর helper (multi-chat)
